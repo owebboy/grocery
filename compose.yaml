@@ -1,0 +1,67 @@
+version: "3.1"
+services:
+  db:
+    image: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: uas
+      MYSQL_USER: uas
+      MYSQL_PASSWORD: uas
+    volumes:
+      - db-data:/var/lib/mysql
+  amqp:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    expose:
+      - "5672"
+      - "15672"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grocery-amqp.rule=Host(`amqp.grocery.localhost`)"
+      - "traefik.http.routers.grocery-amqp.entrypoints=websecure"
+      - "traefik.http.routers.grocery-amqp.tls=true"
+      - "traefik.http.services.grocery-amqp.loadbalancer.server.port=15672"
+  mail:
+    image: mailhog/mailhog
+    platform: linux/amd64
+    expose:
+      - 8025
+      - 1025
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grocery-mailhog.rule=Host(`mailhog.grocery.localhost`)"
+      - "traefik.http.routers.grocery-mailhog.entrypoints=websecure"
+      - "traefik.http.routers.grocery-mailhog.tls=true"
+      - "traefik.http.services.grocery-mailhog.loadbalancer.server.port=8025"
+  php-fpm:
+    build: .
+    environment:
+      DEBUG: "true"
+    volumes:
+      - "./app:/app:rw"
+    expose:
+      - 9000
+    depends_on:
+      - db
+      - amqp
+  web:
+    image: nginx:alpine
+    volumes:
+      - "./app:/app:ro"
+      - "./web_server.conf:/etc/nginx/conf.d/default.conf:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grocery-web.rule=Host(`grocery.localhost`)"
+      - "traefik.http.routers.grocery-web.entrypoints=websecure"
+      - "traefik.http.routers.grocery-web.tls=true"
+    depends_on:
+      - php-fpm
+volumes:
+  db-data:
+
+networks:
+  default:
+    name: traefik
+    external: true
