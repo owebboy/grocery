@@ -3,12 +3,13 @@ services:
   db:
     image: mariadb
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: uas
-      MYSQL_USER: uas
-      MYSQL_PASSWORD: uas
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_AUTO_UPGRADE: "1"
+      MARIADB_DATABASE: uas
+      MARIADB_USER: uas
+      MARIADB_PASSWORD: uas
     volumes:
-      - db-data:/var/lib/mysql
+      - grocery-data:/var/lib/mysql
   amqp:
     image: rabbitmq:3-management
     environment:
@@ -59,7 +60,7 @@ services:
     depends_on:
       - php-fpm
 volumes:
-  db-data:
+  grocery-data:
 
 networks:
   default:
